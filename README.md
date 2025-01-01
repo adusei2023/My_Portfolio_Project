@@ -107,6 +107,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📧 Contact
 
-Your Name - amuel Boateng[samuelad1949@gmail.com] and Gloria Boateng[gloriaboateng2011@gmail.com]
+Your Name - Samuel Boateng[samuelad1949@gmail.com] and Gloria Boateng[gloriaboateng2011@gmail.com]
 Project Link: [https://github.com/adusei2023/My_Portfolio_Project](https://github.com/adusei2023/My_Portfolio_Project)
 
