@@ -1,13 +1,28 @@
 import React, { useState } from 'react';
+import { supabase } from '../lib/supabase';
 import AuthModal from './AuthModal';
 
 interface NavbarProps {
   onNavigate: (section: 'projects' | 'about' | 'contact') => void;
   activeSection: string;
+  user: any; // You might want to type this properly based on your Supabase user type
 }
 
-const Navbar: React.FC<NavbarProps> = ({ onNavigate, activeSection }) => {
+const Navbar: React.FC<NavbarProps> = ({ onNavigate, activeSection, user }) => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      // Force reload the page to reset all states and return to landing page
+      window.location.reload();
+      
+    } catch (err) {
+      console.error('Error signing out:', err);
+    }
+  };
 
   return (
     <nav className="bg-white shadow-sm">
@@ -46,12 +61,26 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, activeSection }) => {
             </button>
           </div>
           <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setIsAuthModalOpen(true)}
-              className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800"
-            >
-              Sign In
-            </button>
+            {user ? (
+              <div className="flex items-center space-x-4">
+                <span className="text-sm text-gray-600">
+                  {user.email}
+                </span>
+                <button
+                  onClick={handleSignOut}
+                  className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-800"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800"
+              >
+                Sign In
+              </button>
+            )}
           </div>
         </div>
       </div>

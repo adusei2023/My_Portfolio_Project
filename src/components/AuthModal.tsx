@@ -4,13 +4,28 @@ import { supabase } from '../lib/supabase';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onAuthSuccess?: () => void;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+interface SignUpData {
+  email: string;
+  password: string;
+  fullName: string;
+  title: string;
+  bio: string;
+}
+
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess }) => {
   const [isSignIn, setIsSignIn] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState<SignUpData>({
+    email: '',
+    password: '',
+    fullName: '',
+    title: '',
+    bio: '',
+  });
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
@@ -18,23 +33,60 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     setLoading(true);
 
     try {
       if (isSignIn) {
         const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: formData.email,
+          password: formData.password,
         });
         if (error) throw error;
+        
+        setSuccess('Sign in successful!');
+        onAuthSuccess?.();
+        setTimeout(() => {
+          onClose();
+        }, 500);
       } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
+        // Sign up with additional profile data
+        const { data: authData, error: signUpError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              full_name: formData.fullName,
+              title: formData.title,
+            },
+          },
         });
-        if (error) throw error;
+
+        if (signUpError) throw signUpError;
+
+        // If sign up successful, create profile record
+        if (authData.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                id: authData.user.id,
+                full_name: formData.fullName,
+                title: formData.title,
+                bio: formData.bio,
+              },
+            ]);
+
+          if (profileError) throw profileError;
+          
+          // Show success message for sign up
+          setSuccess('Sign up successful! Please check your email for verification.');
+          // Wait 2 seconds before closing the modal
+          setTimeout(() => {
+            onClose();
+          }, 2000);
+        }
       }
-      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -42,25 +94,43 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg max-w-md w-full">
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg p-8 max-w-md w-full relative">
         <h2 className="text-2xl font-bold mb-6">
           {isSignIn ? 'Sign In' : 'Sign Up'}
         </h2>
+
         {error && (
-          <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">
+          <div className="mb-4 p-3 bg-red-50 text-red-800 rounded-md">
             {error}
           </div>
         )}
+
+        {success && (
+          <div className="mb-4 p-3 bg-green-50 text-green-800 rounded-md">
+            {success}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-gray-700 mb-2">Email</label>
             <input
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 border rounded"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              className="w-full p-2 border rounded focus:ring-indigo-500 focus:border-indigo-500"
               required
             />
           </div>
@@ -68,12 +138,55 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <label className="block text-gray-700 mb-2">Password</label>
             <input
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-2 border rounded"
+              name="password"
+              value={formData.password}
+              onChange={handleInputChange}
+              className="w-full p-2 border rounded focus:ring-indigo-500 focus:border-indigo-500"
               required
             />
           </div>
+
+          {/* Additional fields for sign up */}
+          {!isSignIn && (
+            <>
+              <div>
+                <label className="block text-gray-700 mb-2">Full Name</label>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded focus:ring-indigo-500 focus:border-indigo-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 mb-2">Title</label>
+                <input
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Full Stack Developer"
+                  className="w-full p-2 border rounded focus:ring-indigo-500 focus:border-indigo-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 mb-2">Bio</label>
+                <textarea
+                  name="bio"
+                  value={formData.bio}
+                  onChange={handleInputChange}
+                  placeholder="Tell us about yourself..."
+                  className="w-full p-2 border rounded focus:ring-indigo-500 focus:border-indigo-500"
+                  rows={3}
+                  required
+                />
+              </div>
+            </>
+          )}
+
           <button
             type="submit"
             className="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 disabled:opacity-50"
@@ -83,7 +196,17 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           </button>
         </form>
         <button
-          onClick={() => setIsSignIn(!isSignIn)}
+          onClick={() => {
+            setIsSignIn(!isSignIn);
+            setFormData({
+              email: '',
+              password: '',
+              fullName: '',
+              title: '',
+              bio: '',
+            });
+            setError(null);
+          }}
           className="mt-4 text-indigo-600 hover:text-indigo-800"
         >
           {isSignIn ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
