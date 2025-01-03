@@ -18,10 +18,35 @@ const App: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchProjects();
-    checkUser();
+    const initialize = async () => {
+      try {
+        console.log('Initializing app...');
+        await fetchProjects();
+        await checkUser();
+        console.log('Initialization complete');
+      } catch (error) {
+        console.error('Initialization error:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initialize();
+  }, []);
+
+  useEffect(() => {
+    const logEnvironmentInfo = () => {
+      console.log('Environment check:', {
+        nodeEnv: process.env.NODE_ENV,
+        hasSupabaseUrl: !!import.meta.env.VITE_SUPABASE_URL,
+        hasSupabaseKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY
+      });
+    };
+
+    logEnvironmentInfo();
   }, []);
 
   const checkUser = async () => {
@@ -159,6 +184,14 @@ const App: React.FC = () => {
       </div>
     </div>
   );
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
