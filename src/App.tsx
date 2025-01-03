@@ -8,12 +8,13 @@ import About from './components/About';
 import Contact from './components/Contact';
 import AuthModal from './components/AuthModal';
 import EditProjectModal from './components/EditProjectModal';
+import { User } from '@supabase/supabase-js';
 
 const App: React.FC = () => {
   const [activeSection, setActiveSection] = useState<'projects' | 'about' | 'contact'>('projects');
   const [projects, setProjects] = useState<Project[]>([]);
   const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
