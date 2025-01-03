@@ -5,9 +5,19 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+        },
+      },
+    },
   },
   server: {
-    port: 5173
+    port: 5173,
+  },
+  define: {
+    'process.env': {}
   }
 }) 

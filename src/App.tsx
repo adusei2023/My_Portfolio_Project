@@ -9,6 +9,7 @@ import Contact from './components/Contact';
 import AuthModal from './components/AuthModal';
 import EditProjectModal from './components/EditProjectModal';
 import { User } from '@supabase/supabase-js';
+import Debug from './components/Debug';
 
 const App: React.FC = () => {
   const [activeSection, setActiveSection] = useState<'projects' | 'about' | 'contact'>('projects');
@@ -24,8 +25,19 @@ const App: React.FC = () => {
     const initialize = async () => {
       try {
         console.log('Initializing app...');
-        await fetchProjects();
-        await checkUser();
+        setIsLoading(true);
+        
+        // Check Supabase connection
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+        }
+        
+        await Promise.all([
+          fetchProjects(),
+          checkUser()
+        ]);
+        
         console.log('Initialization complete');
       } catch (error) {
         console.error('Initialization error:', error);
@@ -47,6 +59,18 @@ const App: React.FC = () => {
     };
 
     logEnvironmentInfo();
+  }, []);
+
+  useEffect(() => {
+    const checkEnvironment = () => {
+      console.log('Environment Variables Check:', {
+        hasSupabaseUrl: !!import.meta.env.VITE_SUPABASE_URL,
+        hasSupabaseKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+        nodeEnv: import.meta.env.MODE,
+      });
+    };
+
+    checkEnvironment();
   }, []);
 
   const checkUser = async () => {
@@ -242,6 +266,8 @@ const App: React.FC = () => {
           project={selectedProject}
         />
       )}
+
+      {import.meta.env.DEV && <Debug />}
     </div>
   );
 };
