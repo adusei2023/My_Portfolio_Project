@@ -10,6 +10,9 @@ import AuthModal from './components/AuthModal';
 import EditProjectModal from './components/EditProjectModal';
 import { User } from '@supabase/supabase-js';
 import Debug from './components/Debug';
+import ErrorDisplay from './components/ErrorDisplay';
+
+const DEBUG = true;
 
 const App: React.FC = () => {
   const [activeSection, setActiveSection] = useState<'projects' | 'about' | 'contact'>('projects');
@@ -20,27 +23,41 @@ const App: React.FC = () => {
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  if (DEBUG) {
+    console.log('App mounting with env:', {
+      supabaseUrl: import.meta.env.VITE_SUPABASE_URL?.slice(0, 5) + '...',
+      hasSupabaseKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+      mode: import.meta.env.MODE,
+      isDev: import.meta.env.DEV,
+      isProd: import.meta.env.PROD
+    });
+  }
 
   useEffect(() => {
     const initialize = async () => {
       try {
-        console.log('Initializing app...');
         setIsLoading(true);
+        setError(null);
         
-        // Check Supabase connection
+        console.log('Environment check:', {
+          supabaseUrl: !!import.meta.env.VITE_SUPABASE_URL,
+          supabaseKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+          mode: import.meta.env.MODE
+        });
+
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-        }
-        
+        if (sessionError) throw sessionError;
+
         await Promise.all([
           fetchProjects(),
           checkUser()
         ]);
-        
-        console.log('Initialization complete');
-      } catch (error) {
-        console.error('Initialization error:', error);
+
+      } catch (err) {
+        console.error('Initialization error:', err);
+        setError(err instanceof Error ? err : new Error('Failed to initialize app'));
       } finally {
         setIsLoading(false);
       }
@@ -208,6 +225,10 @@ const App: React.FC = () => {
       </div>
     </div>
   );
+
+  if (error) {
+    return <ErrorDisplay error={error} />;
+  }
 
   if (isLoading) {
     return (
